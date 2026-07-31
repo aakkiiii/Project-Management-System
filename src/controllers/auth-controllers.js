@@ -2,7 +2,7 @@ import { User } from "../models/user.models.js";
 import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-errors.js";
 import { asyncHandler } from "../utils/async-handler.js";
-import { sendEmail } from "../utils/mail.js";
+import { sendEmail, emailVerificationMailgenContent } from "../utils/mail.js";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -19,7 +19,7 @@ const generateAccessAndRefreshToken = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res) => {
-  const { email, username, password, role } = req.body;
+  const { email, username, password,role} = req.body;
 
   //checking in the DB for existing user with same credentials
 
@@ -59,8 +59,8 @@ const registerUser = asyncHandler(async (req, res) => {
     ),
   });
 
-  const createdUser = await User.findById(user_id).select(
-    "-password -refreshToken - emailVerificationToken -emailVerificationExpiry",
+  const createdUser = await User.findById(user._id).select(
+    "-password -refreshToken -emailVerificationToken -emailVerificationExpiry",
   );
 
   if (!createdUser) {

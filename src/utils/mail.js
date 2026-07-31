@@ -1,12 +1,11 @@
 import { text } from "express";
 import Mailgen from "mailgen";
 import nodemailer from "nodemailer";
-import Mail from "nodemailer/lib/mailer";
 
 //for sending emails this is all we require...
 
 const sendEmail = async (options) => {
-  new Mailgen({
+  const mailGenerator = new Mailgen({
     theme: "default",
     product: {
       name: "Task Manager",
@@ -14,7 +13,7 @@ const sendEmail = async (options) => {
     },
   });
 
-  const emailTextual = mailGenerator.generatePlaintext(options.mailContent);
+  const emailTextual = mailGenerator.generatePlaintext(options.mailgenContent);
   const emailHtml = mailGenerator.generate(options.mailgenContent);
 
   const transporter = nodemailer.createTransport({
@@ -87,4 +86,8 @@ const forgotPasswordMailgenContent = (username, verificationUrl) => {
   };
 };
 
-export { emailVerificationMailgenContent, forgotPasswordMailgenContent,sendEmail };
+export {
+  emailVerificationMailgenContent,
+  forgotPasswordMailgenContent,
+  sendEmail,
+};

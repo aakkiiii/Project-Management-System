@@ -21,11 +21,22 @@ app.use(
 // import the routes
 
 import healthCheckRouter from "./routes/healthcheck.routes.js";
+import authRouter from "./routes/auth.routes.js";
 
 app.use("/api/v1/healthcheck", healthCheckRouter);
+app.use("/api/v1/auth", authRouter);
 
 app.get("/", (req, res) => {
   res.send("Server is running");
+});
+
+app.use((err, req, res, next) => {
+  return res.status(err.statusCode || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+    errors: err.errors || [],
+    data: null,
+  });
 });
 
 export default app;

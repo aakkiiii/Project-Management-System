@@ -3,6 +3,8 @@ import { ApiResponse } from "../utils/api-response.js";
 import { ApiError } from "../utils/api-errors.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { sendEmail, emailVerificationMailgenContent } from "../utils/mail.js";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async (userId) => {
   try {
@@ -225,6 +227,48 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "Mail has been sent to your email ID."));
 });
-const geCurrentUser = asyncHandler(async (req, res) => {});
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
-export { registerUser, login, logoutUser, getCurrentUser, verifyEmail };
+  if (!incomingRefreshToken) {
+    throw new ApiError(401, "Unauthorized access.");
+  }
+
+  try {
+   const decodedToken=  jwt.verify(incomingRefreshToken,process.env.REFRESH_TOKEN_SECRET)
+
+    const user =  await User.findById(decodedToken?._id)
+    if (!user) {
+      throw new ApiError(401, "Invalid refresh token.");
+    }
+     if (incomingRefreshToken != user?.refreshToken) {
+       throw new ApiError(401, "Refresh token is expired.");
+     }
+
+     const options = {
+      httpOnly:true,
+      secure:true
+     }
+     const {accessToken,refreshToken,newRefreshToken} = await generateAccessAndRefreshToken(user._id)
+
+     user.refreshToken = newRefreshToken;
+     await user.save();
+
+     return res
+      .status(200)
+      .cookie("accessToken",accessToken,options)
+      .cookie("refreshToken",newRefreshToken,options)
+      .json(
+        200,
+        {accessToken,refreshToken: newRefreshToken},
+        "Access token refreshed."
+      )
+
+
+  } catch (error) {
+    throw new ApiError(401, "Invalid refresh token.");
+  }
+});
+const refeshAccessToken = asyncHandler(async (req, res) => {});
+
+export { registerUser, login, logoutUser, getCurrentUser, verifyEmail,refeshAccessToken };

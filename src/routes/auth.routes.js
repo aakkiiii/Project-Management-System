@@ -33,7 +33,7 @@ router
   .post(userForgotPasswordValidator(), validate, forgotPasswordRequest);
 
 router
-  .route("/reset-password/:resetToken")
+  .route("/f")
   .post(userForgotPasswordValidator(), validate, resetForgotPassword);
 
 //secured routes..

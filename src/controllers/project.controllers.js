@@ -12,7 +12,61 @@ import {
 import mongoose from "mongoose";
 import { UserRolesEnum } from "../utils/constants.js";
 
-const getProject = asyncHandler(async (req, res) => {});
+const getProjects = asyncHandler(async (req, res) => {
+  const projects = await ProjestMember.aggregate([
+    {
+      $match: {
+        user: new mongoose.Types.ObjectId(req.user._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "projects",
+        localField: "projects",
+        foreignFields: "_id",
+        as: "projects",
+        pipeline: [
+          {
+            $lookup: {
+              from: "projectmembers",
+              localField: "_id",
+              foreignFields: "projects",
+              as: "projectmembers",
+            },
+          },
+          {
+            $addFiels: {
+              members: {
+                $size: "$projectmembers",
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: "$project",
+    },
+    {
+      $project: {
+        project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          members: 1,
+          createdBy: 1,
+          createdAt: 1,
+        },
+        role: 1,
+        _id: 1,
+      },
+    },
+  ]);
+  return res
+    .status(200)
+    .json(new ApiResponse(200, projects, "projects fetched successfully"));
+});
+const getProjectById = asyncHandler(async (req, res) => {});
 
 const createProject = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
@@ -65,9 +119,7 @@ const deleteProject = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, project, "Project deleted successfully"));
 });
-const addMembersToProject = asyncHandler(async (req, res) => {
-  
-});
+const addMembersToProject = asyncHandler(async (req, res) => {});
 const getProjectMembers = asyncHandler(async (req, res) => {});
 const updateMemberRole = asyncHandler(async (req, res) => {});
 const deleteMember = asyncHandler(async (req, res) => {});
@@ -80,5 +132,5 @@ export {
   deleteProject,
   updateProject,
   createProject,
-  getProject,
+  getProjects,
 };

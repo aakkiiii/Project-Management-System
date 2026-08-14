@@ -7,6 +7,7 @@ import { ApiError } from "../utils/api-errors.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
+import { pipeline } from "nodemailer/lib/xoauth2/index.js";
 
 const getTasks = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
@@ -57,12 +58,100 @@ const createTask = asyncHandler(async (req, res) => {
 
   return res.status(201).json(201, task, "Task created successfully");
 });
-const getTaskById = asyncHandler(async (req, res) => {});
+const getTaskById = asyncHandler(async (req, res) => {
+  const { taskId } = req.params;
+  const task = await Task.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(taskId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localfield: "assignedTo",
+        foreignfield: "_id",
+        as: "assignedTo",
+        pipeline: [
+          {
+            _id: 1,
+            username: 1,
+            fullName: 1,
+            avatar: 1,
+          },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "subtasks",
+        localfield: "_id",
+        foreignfield: "task",
+        as: "subtasks",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localfield: "createdBy",
+              foreignfield: "_id",
+              as: "createdBy",
+              pipeline: [
+                {
+                  $project: {
+                    _id: 1,
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              createdBy: {
+                $arrayElemAt: ["$createdBy", 0],
+              },
+            },
+          },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        assignedTo: {
+          $arrayElemAt: ["$assignedTo", 0],
+        },
+      },
+    },
+  ]);
+
+  if (!task || task.length === 0) {
+    throw new ApiError(404, "Task not found");
+  }
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, task[0], "task fetched successfully"));
+});
 const updateTask = asyncHandler(async (req, res) => {});
-const deleteTask = asyncHandler(async (req, res) => {});
-const createSubTask = asyncHandler(async (req, res) => {});
-const updateSubTask = asyncHandler(async (req, res) => {});
-const deleteSubTask = asyncHandler(async (req, res) => {});
+
+
+const deleteTask = asyncHandler(async (req, res) => {
+
+
+});
+const createSubTask = asyncHandler(async (req, res) => {
+
+
+});
+const updateSubTask = asyncHandler(async (req, res) => {
+
+
+});
+const deleteSubTask = asyncHandler(async (req, res) => {
+    
+});
 
 export {
   createSubTask,

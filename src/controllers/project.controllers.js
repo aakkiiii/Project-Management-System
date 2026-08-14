@@ -11,7 +11,6 @@ import {
 } from "../utils/mail.js";
 import mongoose from "mongoose";
 import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
-import { pipeline } from "nodemailer/lib/xoauth2/index.js";
 
 const getProjects = asyncHandler(async (req, res) => {
   const projects = await ProjectMember.aggregate([
@@ -139,18 +138,18 @@ const addMembersToProject = asyncHandler(async (req, res) => {
     throw new ApiError(404, "User does not exists");
   }
 
-await ProjectMember.findOneAndUpdate(
-  {
-    user: new mongoose.Types.ObjectId(user._id),
-    project: new mongoose.Types.ObjectId(projectId),
-  },
-  {
-    user: new mongoose.Types.ObjectId(user._id),
-    project: new mongoose.Types.ObjectId(projectId),
-    role: role,
-  },
-  { new: true, upsert: true },
-);
+  await ProjectMember.findOneAndUpdate(
+    {
+      user: new mongoose.Types.ObjectId(user._id),
+      project: new mongoose.Types.ObjectId(projectId),
+    },
+    {
+      user: new mongoose.Types.ObjectId(user._id),
+      project: new mongoose.Types.ObjectId(projectId),
+      role: role,
+    },
+    { new: true, upsert: true },
+  );
 
   return res
     .status(201)
@@ -158,54 +157,54 @@ await ProjectMember.findOneAndUpdate(
 });
 const getProjectMembers = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
-const project = await Project.findById(projectId);
+  const project = await Project.findById(projectId);
 
   if (!project) {
     throw new ApiError(404, "Project not found");
   }
 
-const projectMembers = await ProjectMember.aggregate([
-  {
-    $match: {
-      project: new mongoose.Types.ObjectId(projectId),
-    },
-  },
-  {
-    $lookup: {
-      from: "users",
-      localField: "user",
-      foreignField: "_id",
-      as: "user",
-      pipeline: [
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            avatar: 1,
-            fullName: 1,
-          },
-        },
-      ],
-    },
-  },
-  {
-    $addFields: {
-      user: {
-        $arrayElemAt: ["$user", 0],
+  const projectMembers = await ProjectMember.aggregate([
+    {
+      $match: {
+        project: new mongoose.Types.ObjectId(projectId),
       },
     },
-  },
-  {
-    $project: {
-      project: 1,
-      role: 1,
-      user: 1,
-      createdAt: 1,
-      updatedAt: 1,
-      _id: 0,
+    {
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "user",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              avatar: 1,
+              fullName: 1,
+            },
+          },
+        ],
+      },
     },
-  },
-]);
+    {
+      $addFields: {
+        user: {
+          $arrayElemAt: ["$user", 0],
+        },
+      },
+    },
+    {
+      $project: {
+        project: 1,
+        role: 1,
+        user: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        _id: 0,
+      },
+    },
+  ]);
   return res
     .status(200)
     .json(new ApiResponse(200, projectMembers, "Project members fetched"));
